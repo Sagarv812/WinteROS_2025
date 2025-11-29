@@ -1,27 +1,36 @@
+# Docker Installation and Running ROS Containers  
+*Project Mark-1: Initialization Sequence*
 
-# Docker Installation and Running ROS Containers 
+Before Tony Stark could weld armor plates or fire up a repulsor, he needed one thing above all:  
+**a working cave terminal** — a system capable of running ROS, simulations, sensors, and code.
 
-This guide provides step-by-step instructions to install Docker and run a ROS container on different operating systems: **Windows**, **macOS**, and **Ubuntu**.  
+This guide is that first spark — powering up your own cave setup by installing Docker and preparing the environment where every part of the Mark-1 (Weeks 0–5) will be built.
 
-*Final Usage (once the whole setup is done) for Docker:* 
+Once everything is ready, your ROS container will run like this:  
 ![12secfinal (1)](https://github.com/user-attachments/assets/0893ef22-5425-4e2c-a8d7-759f8319c895)
 
+# ❄️ Week 0 Begins  
+Before building intelligence, mobility, vision, or manipulation for the Mark-1, you need the **base system**.
+
+This installation is the **System Boot Protocol** — the foundational step Tony had to take before creating anything else.  
+Once your ROS container runs, you’re ready to begin forging the digital nervous system of Stark’s escape machine.
 
 ---
-## Index
-- [Windows Installation](#for-windows)
-- [macOS Installation](#for-macos)
-- [Ubuntu Installation](#for-ubuntu)
-  
+
+## Index  
+- [Windows Installation](#for-windows)  
+- [macOS Installation](#for-macos)  
+- [Ubuntu Installation](#for-ubuntu)  
+
 ---
 
 
-## For Windows  
+# For Windows  
 
 ### Step 1: Install WSL (Windows Subsystem for Linux)  
 
 1. Open **PowerShell** as Administrator.  
-2. Run the following command:  
+2. Run this command:  
    ```bash
    wsl --install
    ```
@@ -50,7 +59,7 @@ This guide provides step-by-step instructions to install Docker and run a ROS co
    ```
 5. Wait for the container to initialize. This may take around 30 minutes for first-time users.  
 
-> **Note**: The first run may take some time to download necessary files and set up the environment.
+> **Note**: First launch takes 20–30 minutes as Docker assembles the system — just like Tony’s first cave prototype.
 
 <img width="960" height="564" alt="2" src="https://github.com/user-attachments/assets/6fcfdc7d-d531-46fc-9d55-c6166867d8aa" />
 
@@ -73,7 +82,10 @@ This guide provides step-by-step instructions to install Docker and run a ROS co
 
 ## For macOS  
 
-### Step 1: Install XQuartz  
+### Step 1: Install XQuartz — External HUD Renderer 
+
+Tony built his HUD from scraps.
+You're installing yours with a DMG file.
 
 1. Download and install XQuartz from [here](https://www.xquartz.org/releases/XQuartz-2.8.1.html).  
 2. Follow the on-screen instructions to complete the installation.  
@@ -102,7 +114,7 @@ This guide provides step-by-step instructions to install Docker and run a ROS co
 
 
 
-### Step 4: Access ROS in the Browser  
+### Step 4: Access ROS in the Browser  (HUD Access)
 
 1. Open your web browser.  
 2. In the address bar, type `localhost:6080` and press Enter.  
@@ -115,7 +127,7 @@ This guide provides step-by-step instructions to install Docker and run a ROS co
 
 ## For Ubuntu  
 
-> **Note**: If you are using an environment other than GNOME, install GNOME Terminal using the following command:  
+> **Note**: Ubuntu is the closest thing to Tony’s raw Linux cave setup. If you’re not using GNOME Terminal: 
 > ```bash
 > sudo apt install gnome-terminal
 > ```
@@ -164,7 +176,10 @@ This guide provides step-by-step instructions to install Docker and run a ROS co
 
 # ROS Installation in Native UBUNTU - No Docker (Proceed at your own risk)
 
-The docker container provides plenty of functionalities all of which will be more than enough for this bootcamp. However, if you wish to pursue ROS further in the future, it is advisable to download it natively on Ubuntu. Follow the given steps to install:
+**WARNING — This is pure arc reactor work.**
+Raw, exposed, no safety suit.
+
+Recommended only for users who plan to work with ROS long-term.. Follow the given steps to install:
 
 ## Ubuntu Installation (Ubuntu 24.04)
 > NOTE: Skip this part if you already have **Ubuntu 24.04** installed on your computer.
@@ -281,9 +296,16 @@ If ROS2 Jazzy has been installed correctly on your machine, then you should see 
 
 > If the examples nodes don't run or if you get an error saying `Package 'demo_nodes_cpp' not found` then run the command `sudo apt install ros-jazzy-desktop` again and try re-running the examples.
 
-# ⚡ ALL SET
+# ⚡  SYSTEMS ONLINE
 <p align="center">
   <img src="https://github.com/user-attachments/assets/9be17ef2-fbf3-4b5d-b540-536e87a4cf18" width="450">
 </p>
 
-Head on to [Week 0](/Week%200/week0.md)
+Your cave terminal is active.
+Docker is running.
+ROS is online.
+This is the moment Tony Stark looked at his glowing reactor and said:
+
+**“Yeah… I can work with this.”**
+
+Proceed to [Week 0: Understanding Stark OS](./) and begin building the Mark-1.
