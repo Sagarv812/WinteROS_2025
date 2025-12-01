@@ -54,7 +54,7 @@ The cave hums with energy.
 Tony finally has a machine he can build on.
 
 ---
-<img src="">
+<img src="Images/installationlol.jpg">
 
 ---
 
