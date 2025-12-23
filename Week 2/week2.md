@@ -1342,7 +1342,7 @@ In a real-world scenario, the environment is dynamic—people move, and objects 
 
 `explore.cpp` is in the src folder in the explore package
 
-First we add this to `explore.cpp` at the top with the other `#include`s
+First we add this to `explore.cpp` at the top with the other `#include`s:
 
 ```cpp
 #include "nav2_msgs/srv/clear_entire_costmap.hpp"
@@ -1392,9 +1392,9 @@ Disabled parameters and functions related to returning to the initial position t
 //   move_base_client_->async_send_goal(goal, send_goal_options);
 // }
 ```
-Don't add this code we are just commenting/ removing it the from the `explore.cpp` file
+Don't add this code we are just commenting/ removing it the from the `explore.cpp` file.
 
-Now let's add the function that resets the exploration state and reset the map. Add this function after `void Explore::reachedGoal` function 
+Now let's add the function that resets the exploration state and reset the map. Add this function after `void Explore::reachedGoal` function .
 
 ```cpp
 void Explore::resetExplorationState() {
@@ -1443,7 +1443,7 @@ When we delete the map, we also lose the current sensor data. This can make the 
 
 This rotation allows the sensors (like LIDAR) to scan the surroundings and update the map immediately so exploration can continue smoothly.
 
-Add this after the previous funciton 
+Add this after the previous function.
 
 ```cpp
 void Explore::spinGoal()
@@ -1481,7 +1481,7 @@ void Explore::spinGoal()
 }
 ```
 
-We added 2 new functions in `explore.cpp` so let's add them in `explore.h` (located in include folder)
+We added 2 new functions in `explore.cpp` so let's add them in `explore.h` (located in include folder):
 
 ```cpp
   geometry_msgs::msg::Pose initial_pose_;
@@ -1490,12 +1490,12 @@ We added 2 new functions in `explore.cpp` so let's add them in `explore.h` (loca
   void spinGoal();
 ```
 
-We also removed the `returnToInitialPose` function
+We also removed the `returnToInitialPose` function.
 
 Remember we added some random includes at the starting of `explore.cpp` now we need to tell the package where to find those files are 
-therefore make the following changes in the following files
+therefore make the following changes in the following files.
 
-In `CMakeLists.txt` add slam_toolbox and nav2_msgs
+In `CMakeLists.txt` add slam_toolbox and nav2_msgs:
 
 ```txt
 # find dependencies
@@ -1529,7 +1529,7 @@ set(DEPENDENCIES
 )
 ```
 
-In `package.xml` make sure these dependencies are added
+In `package.xml` make sure these dependencies are added:
 
 ```xml
   <depend>map_msgs</depend>
@@ -1550,9 +1550,9 @@ Now the map should automatically reset after it's fully explored build the works
 
 ## Controller_Node
 
-To make our life simple let's add a controller node which checks from `chase_the_ball.py` wether a ball has been found or not and depending on that give msg to explore.cpp wether to continue exploring or stop exploring and run the chase the ball code
+To make our life simple let's add a controller node which checks from `chase_the_ball.py` wether a ball has been found or not and depending on that give msg to explore.cpp wether to continue exploring or stop exploring and run the chase the ball code.
 
-In erc_ros2_navigation_py package in the erc_ros2_navigation_py folder make file called `controller_node.py` and copy paste the following code 
+In erc_ros2_navigation_py package in the erc_ros2_navigation_py folder make file called `controller_node.py` and copy paste the following code. 
 
 ```python
 import rclpy
@@ -1795,9 +1795,9 @@ def process_image(self, img):
 
 Now finally we can run and test it!!
 
-First of all don't forget to build and source the workspace 
+First of all don't forget to build and source the workspace .
 
-We need to open 5 terminals (and source in all terminals don't forget) and write the following commands in each terminal
+We need to open 5 terminals (and source in all terminals don't forget) and write the following commands in each terminal.
 
 Terminal 1:
 ```bash
@@ -1824,5 +1824,5 @@ Terminal 5:
 ros2 launch erc_gazebo_sensors_py chase_the_ball
 ```
 
-And voila!! It should be working use the resource spawner to spawn the ball and see how our bot finds the ball
+And voila!! It should be working use the resource spawner to spawn the ball and see how our bot finds the ball.
 You can also remove the ball to see how the bot continues to explore if the ball is lost. Experiment around and enjoy :)
