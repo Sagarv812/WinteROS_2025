@@ -1121,6 +1121,110 @@ We can add more waypoints easily:
 
 <a href="https://youtu.be/3OhAyDFqBIs"><img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/138b4a0f-0b9d-4937-9bf9-ccf708b6900b" /></a> 
 
+## Navigation with SLAM
 
+As we saw to navigate a mobile robot we need to know 2 things:
+1.	Knowing where the robot is (localization or SLAM),
+2.	Knowing where it needs to go (a goal pose or waypoint)
+
+In the previous examples we used localization on a know map, but it's also possible to navigate together with an online SLAM. It means we don't know the complete environment around the robot but we can already navigate in the known surrounding.
+
+Let's create a `navigation_with_slam.launch.py` launch file where we start both the SLAM toolbox and the navigation stack:
+
+```python
+import os
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+
+def generate_launch_description():
+
+    pkg_bme_ros2_navigation = get_package_share_directory('bme_ros2_navigation')
+
+    gazebo_models_path, ignore_last_dir = os.path.split(pkg_bme_ros2_navigation)
+    os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
+
+    rviz_launch_arg = DeclareLaunchArgument(
+        'rviz', default_value='true',
+        description='Open RViz'
+    )
+
+    rviz_config_arg = DeclareLaunchArgument(
+        'rviz_config', default_value='navigation.rviz',
+        description='RViz config file'
+    )
+
+    sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time', default_value='True',
+        description='Flag to enable use_sim_time'
+    )
+
+    nav2_navigation_launch_path = os.path.join(
+        get_package_share_directory('nav2_bringup'),
+        'launch',
+        'navigation_launch.py'
+    )
+
+    navigation_params_path = os.path.join(
+        get_package_share_directory('bme_ros2_navigation'),
+        'config',
+        'navigation.yaml'
+    )
+
+    slam_toolbox_params_path = os.path.join(
+        get_package_share_directory('bme_ros2_navigation'),
+        'config',
+        'slam_toolbox_mapping.yaml'
+    )
+
+    # Launch rviz
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', PathJoinSubstitution([pkg_bme_ros2_navigation, 'rviz', LaunchConfiguration('rviz_config')])],
+        condition=IfCondition(LaunchConfiguration('rviz')),
+        parameters=[
+            {'use_sim_time': LaunchConfiguration('use_sim_time')},
+        ]
+    )
+
+    # Path to the Slam Toolbox launch file
+    slam_toolbox_launch_path = os.path.join(
+        get_package_share_directory('slam_toolbox'),
+        'launch',
+        'online_async_launch.py'
+    )
+
+    slam_toolbox_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(slam_toolbox_launch_path),
+        launch_arguments={
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'slam_params_file': slam_toolbox_params_path,
+        }.items()
+    )
+
+    navigation_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(nav2_navigation_launch_path),
+        launch_arguments={
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'params_file': navigation_params_path,
+        }.items()
+    )
+
+    launchDescriptionObject = LaunchDescription()
+
+    launchDescriptionObject.add_action(rviz_launch_arg)
+    launchDescriptionObject.add_action(rviz_config_arg)
+    launchDescriptionObject.add_action(sim_time_arg)
+    launchDescriptionObject.add_action(rviz_node)
+    launchDescriptionObject.add_action(slam_toolbox_launch)
+    launchDescriptionObject.add_action(navigation_launch)
+
+    return launchDescriptionObject
+```
 
 
