@@ -1143,9 +1143,9 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    pkg_bme_ros2_navigation = get_package_share_directory('bme_ros2_navigation')
+    pkg_erc_ros2_navigation = get_package_share_directory('erc_ros2_navigation')
 
-    gazebo_models_path, ignore_last_dir = os.path.split(pkg_bme_ros2_navigation)
+    gazebo_models_path, ignore_last_dir = os.path.split(pkg_erc_ros2_navigation)
     os.environ["GZ_SIM_RESOURCE_PATH"] += os.pathsep + gazebo_models_path
 
     rviz_launch_arg = DeclareLaunchArgument(
@@ -1170,13 +1170,13 @@ def generate_launch_description():
     )
 
     navigation_params_path = os.path.join(
-        get_package_share_directory('bme_ros2_navigation'),
+        get_package_share_directory('erc_ros2_navigation'),
         'config',
         'navigation.yaml'
     )
 
     slam_toolbox_params_path = os.path.join(
-        get_package_share_directory('bme_ros2_navigation'),
+        get_package_share_directory('erc_ros2_navigation'),
         'config',
         'slam_toolbox_mapping.yaml'
     )
@@ -1185,7 +1185,7 @@ def generate_launch_description():
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
-        arguments=['-d', PathJoinSubstitution([pkg_bme_ros2_navigation, 'rviz', LaunchConfiguration('rviz_config')])],
+        arguments=['-d', PathJoinSubstitution([pkg_erc_ros2_navigation, 'rviz', LaunchConfiguration('rviz_config')])],
         condition=IfCondition(LaunchConfiguration('rviz')),
         parameters=[
             {'use_sim_time': LaunchConfiguration('use_sim_time')},
@@ -1226,5 +1226,22 @@ def generate_launch_description():
 
     return launchDescriptionObject
 ```
+
+Build the workspace and let's try it!
+
+We'll need 2 terminals as before, one for the simulation:
+```bash
+ros2 launch erc_ros2_navigation spawn_robot.launch.py
+```
+
+And in another terminal we launch the new `navigation_with_slam.launch.py`:
+
+```bash
+ros2 launch erc_ros2_navigation navigation_with_slam.launch.py
+```
+
+<img width="2560" height="1333" alt="image" src="https://github.com/user-attachments/assets/905cc6c3-6059-4061-81d1-929e2bf3cf3d" />
+
+<a href="https://youtu.be/gZrYEP2ctfY"><img width="1281" height="719" alt="image" src="https://github.com/user-attachments/assets/611a4391-51e1-46e6-81ac-f473b881cd70" /></a> 
 
 
