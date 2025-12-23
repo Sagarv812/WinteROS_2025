@@ -1244,4 +1244,43 @@ ros2 launch erc_ros2_navigation navigation_with_slam.launch.py
 
 <a href="https://youtu.be/gZrYEP2ctfY"><img width="1281" height="719" alt="image" src="https://github.com/user-attachments/assets/611a4391-51e1-46e6-81ac-f473b881cd70" /></a> 
 
+# Exploration
+
+Exploration is a process by which a robot operating in an unknown or partially known environment actively searches the space to gather new information. This is a real life use case to use SLAM together with the navigation stack.
+
+There is a simple exploration package that we will use in this lesson, you can download it from the GitHub:
+```bash
+git clone https://github.com/Jadeninja-23a/exploring.git
+```
+
+Copy the package from here and keep it in the src folder of your workspace
+
+Build the workspace and source the `setup.bash` to make sure ROS is aware about the new package!
+
+We'll need 3 terminals, one for the simulation:
+```bash
+ros2 launch erc_ros2_navigation spawn_robot.launch.py
+```
+
+In another terminal we launch the `navigation_with_slam.launch.py`:
+```bash
+ros2 launch erc_ros2_navigation navigation_with_slam.launch.py
+```
+
+And in the third one we launch the exploration:
+```bash
+ros2 launch explore_lite explore.launch.py
+```
+
+The exploration node will identify the boundaries of the know surrounding and will navigate the robot until it finds all the physical boundaries of the environment.
+<img width="2560" height="1335" alt="image" src="https://github.com/user-attachments/assets/e2c629bb-f70f-4dc9-8d79-33d5671bf682" />
+
+
+We can take a look on the `rqt_graph` of the simulation, but we'll see it's quite big! We can find the exploration node and we can see that it subscribes to the `/map` and to the action status and feedback of the navigation stack.
+<img width="2250" height="1045" alt="image" src="https://github.com/user-attachments/assets/ae37c93b-1c87-4fa8-a301-0c278d307519" />
+
+
+And finally here is a video about exploration:
+
+<a href="https://youtu.be/1jlpu-zfNac"><img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/65ae2ad4-368a-4fe6-bce7-d0ee4dbd8a3b" /></a>
 
