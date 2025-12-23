@@ -982,6 +982,144 @@ And when we are done with the waypoints we can start the navigation through them
 
 <img width="2560" height="1332" alt="image" src="https://github.com/user-attachments/assets/90c1a146-dee7-4340-8a32-859cb5426346" />
 
+It's possible to run multiple loops through the waypoints and it's also possible to save and load the waypoints. One example is already in the `config` folder: `waypoints.yaml`. You can see a video about it here(optional):
+
+<a href="https://youtu.be/ED6AXnAR2sc"><img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/5ee9bf49-567a-41f1-b036-dc926dc25889" /></a> 
+
+It's also possible to follow waypoints through the nav2 navigation stack's API with a custom node. Let's create `follow_waypoints.py` in the `bme_ros2_navigation_py` package:
+
+```python
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
+from nav2_msgs.action import FollowWaypoints
+from rclpy.action import ActionClient
+from tf_transformations import quaternion_from_euler
+
+class WaypointFollower(Node):
+    def __init__(self):
+        super().__init__('waypoint_follower')
+        self._action_client = ActionClient(self, FollowWaypoints, 'follow_waypoints')
+
+    def define_waypoints(self):
+        waypoints = []
+
+        # Waypoint 1
+        wp1 = PoseStamped()
+        wp1.header.frame_id = 'map'
+        wp1.pose.position.x = 6.0
+        wp1.pose.position.y = 1.5
+        q = quaternion_from_euler(0, 0, 0)
+        wp1.pose.orientation.x = q[0]
+        wp1.pose.orientation.y = q[1]
+        wp1.pose.orientation.z = q[2]
+        wp1.pose.orientation.w = q[3]
+        waypoints.append(wp1)
+
+        return waypoints
+
+    def send_goal(self):
+        waypoints = self.define_waypoints()
+        goal_msg = FollowWaypoints.Goal()
+        goal_msg.poses = waypoints
+
+        self._action_client.wait_for_server()
+        self._send_goal_future = self._action_client.send_goal_async(
+            goal_msg, feedback_callback=self.feedback_callback
+        )
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
+
+    def goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected.')
+            return
+
+        self.get_logger().info('Goal accepted.')
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self.get_result_callback)
+
+    def feedback_callback(self, feedback_msg):
+        feedback = feedback_msg.feedback
+        current_waypoint = feedback.current_waypoint
+        self.get_logger().info(f'Navigating to waypoint {current_waypoint}')
+
+    def get_result_callback(self, future):
+        result = future.result().result
+        self.get_logger().info('Waypoint following completed.')
+        rclpy.shutdown()
+
+def main(args=None):
+    rclpy.init(args=args)
+    waypoint_follower = WaypointFollower()
+    waypoint_follower.send_goal()
+    rclpy.spin(waypoint_follower)
+
+if __name__ == '__main__':
+    main()
+```
+
+The definition of the waypoints are identical to the config file we have, we define the `x`, `y` and `z` position and the orientation in a quaternion.
+
+Let's add the entry point to the `setup.py`:
+```python
+    entry_points={
+        'console_scripts': [
+            'send_initialpose = bme_ros2_navigation_py.send_initialpose:main',
+            'slam_toolbox_load_map = bme_ros2_navigation_py.slam_toolbox_load_map:main',
+            'follow_waypoints = bme_ros2_navigation_py.follow_waypoints:main',
+        ],
+    },
+```
+
+Build the workspace, and we'll need 3 terminals this time, one for the simulation:
+```bash
+ros2 launch bme_ros2_navigation spawn_robot.launch.py
+```
+
+Another terminal to launch the `navigation.launch.py`:
+
+```bash
+ros2 launch bme_ros2_navigation navigation.launch.py
+```
+
+And in the third one:
+```bash
+ros2 run bme_ros2_navigation_py follow_waypoints
+```
+
+We can add more waypoints easily:
+```python
+...
+        # Waypoint 2
+        wp2 = PoseStamped()
+        wp2.header.frame_id = 'map'
+        wp2.pose.position.x = -2.0
+        wp2.pose.position.y = -8.0
+        q = quaternion_from_euler(0, 0, 1.57)
+        wp2.pose.orientation.x = q[0]
+        wp2.pose.orientation.y = q[1]
+        wp2.pose.orientation.z = q[2]
+        wp2.pose.orientation.w = q[3]
+        waypoints.append(wp2)
+
+        # Waypoint 3
+        wp3 = PoseStamped()
+        wp3.header.frame_id = 'map'
+        wp3.pose.position.x = 0.0
+        wp3.pose.position.y = 0.0
+        q = quaternion_from_euler(0, 0, 0)
+        wp3.pose.orientation.x = q[0]
+        wp3.pose.orientation.y = q[1]
+        wp3.pose.orientation.z = q[2]
+        wp3.pose.orientation.w = q[3]
+        waypoints.append(wp3)
+
+        # Add more waypoints as needed
+...
+```
+
+<a href="https://youtu.be/3OhAyDFqBIs"><img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/138b4a0f-0b9d-4937-9bf9-ccf708b6900b" /></a> 
 
 
 
