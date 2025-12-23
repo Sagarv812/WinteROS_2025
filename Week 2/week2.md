@@ -928,13 +928,13 @@ def generate_launch_description():
 
 We'll need 2 terminals as before, one for the simulation:
 ```bash
-ros2 launch bme_ros2_navigation spawn_robot.launch.py
+ros2 launch erc_ros2_navigation spawn_robot.launch.py
 ```
 
 And in another terminal we launch the new `navigation.launch.py`:
 
 ```bash
-ros2 launch bme_ros2_navigation navigation.launch.py
+ros2 launch erc_ros2_navigation navigation.launch.py
 ```
 
 We are using AMCL, so first we'll have to publish an initial pose, then we have to tell the pose goal to the navigation stack. For that we can also use RViz's other built-in feature:
@@ -957,13 +957,13 @@ We can use the navigation stack for waypoint navigation, this can be done throug
 
 We'll need 2 terminals as before, one for the simulation:
 ```bash
-ros2 launch bme_ros2_navigation spawn_robot.launch.py
+ros2 launch erc_ros2_navigation spawn_robot.launch.py
 ```
 
 And in another terminal we launch the `navigation.launch.py`:
 
 ```bash
-ros2 launch bme_ros2_navigation navigation.launch.py
+ros2 launch erc_ros2_navigation navigation.launch.py
 ```
 First, we have to make sure that the `Nav2 Goal` toolbar is added to RViz! If not, we can add it under the `+` sign.
 <img width="1459" height="1229" alt="image" src="https://github.com/user-attachments/assets/36b45023-921c-4e44-9411-c6034bcaf488" />
@@ -986,7 +986,7 @@ It's possible to run multiple loops through the waypoints and it's also possible
 
 <a href="https://youtu.be/ED6AXnAR2sc"><img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/5ee9bf49-567a-41f1-b036-dc926dc25889" /></a> 
 
-It's also possible to follow waypoints through the nav2 navigation stack's API with a custom node. Let's create `follow_waypoints.py` in the `bme_ros2_navigation_py` package:
+It's also possible to follow waypoints through the nav2 navigation stack's API with a custom node. Let's create `follow_waypoints.py` in the `erc_ros2_navigation_py` package:
 
 ```python
 import rclpy
@@ -1065,27 +1065,27 @@ Let's add the entry point to the `setup.py`:
 ```python
     entry_points={
         'console_scripts': [
-            'send_initialpose = bme_ros2_navigation_py.send_initialpose:main',
-            'slam_toolbox_load_map = bme_ros2_navigation_py.slam_toolbox_load_map:main',
-            'follow_waypoints = bme_ros2_navigation_py.follow_waypoints:main',
+            'send_initialpose = erc_ros2_navigation_py.send_initialpose:main',
+            'slam_toolbox_load_map = erc_ros2_navigation_py.slam_toolbox_load_map:main',
+            'follow_waypoints = erc_ros2_navigation_py.follow_waypoints:main',
         ],
     },
 ```
 
 Build the workspace, and we'll need 3 terminals this time, one for the simulation:
 ```bash
-ros2 launch bme_ros2_navigation spawn_robot.launch.py
+ros2 launch erc_ros2_navigation spawn_robot.launch.py
 ```
 
 Another terminal to launch the `navigation.launch.py`:
 
 ```bash
-ros2 launch bme_ros2_navigation navigation.launch.py
+ros2 launch erc_ros2_navigation navigation.launch.py
 ```
 
 And in the third one:
 ```bash
-ros2 run bme_ros2_navigation_py follow_waypoints
+ros2 run erc_ros2_navigation_py follow_waypoints
 ```
 
 We can add more waypoints easily:
