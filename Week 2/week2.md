@@ -1,3 +1,43 @@
+### Installation and Setup
+
+#### Installing OpenCV </br>
+  
+ Execute 
+ 
+```bash
+pip --version
+```
+ Ensure that pip is configured with python3.xx . If not you may have to use (```pip3 --version```).
+ 
+
+Execute either
+```bash
+pip install opencv-contrib-python
+#or
+pip install opencv-python
+```
+Use ```pip3``` in the above commands, if python3 is configured with one of them.
+
+Type ```python3``` in Terminal to start Python interactive session and type following codes there.
+```bash
+import cv2 as cv
+print(cv.__version__)
+```
+If you're encountering an issue with the cv2 (OpenCV) library and its interaction with the numpy library. then execute following
+We dont want the most recent version of numpy as it cannot interact with cv_bridge
+
+```bash
+pip install numpy==1.23.5
+```
+
+If the results are printed out without any errors, congratulations !!! You have installed OpenCV-Python successfully.
+
+You may Install OpenCV from source. (Lengthy process)
+
+Please refer to this [link](https://docs.opencv.org/4.5.0/d2/de6/tutorial_py_setup_in_ubuntu.html). This installation can take some time so have patience.
+
+
+.
 # Image Processing with OpenCV
 
 We'll learn how to implement our own node for image processing using ROS and OpenCV. To start, let's create a package alongside our pre-existing package `erc_gazebo_sensors` that we made in the previous week:
