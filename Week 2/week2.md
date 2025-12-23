@@ -1284,3 +1284,500 @@ And finally here is a video about exploration:
 
 <a href="https://youtu.be/1jlpu-zfNac"><img width="1280" height="719" alt="image" src="https://github.com/user-attachments/assets/65ae2ad4-368a-4fe6-bce7-d0ee4dbd8a3b" /></a>
 
+# Assignment ??
+
+You’ve been working incredibly hard, so there is no formal assignment this week!
+
+Instead, we’re doing a cool integration activity: combining Exploration with Chase the Ball. Your goal is to have the bot autonomously search the entire house until it finds the red ball.
+
+## 🔄 Continuous Exploration
+Before we integrate the chase logic, we need to fix a limitation in our exploration code. Currently, once the bot finishes mapping the house, it returns to its starting position and stops.
+
+In a real-world scenario, the environment is dynamic—people move, and objects might appear or disappear. To ensure we find the ball, we are modifying `explore.cpp` to run in an infinite loop. This keeps the bot re-exploring the house indefinitely until the target is located.
+
+`explore.cpp` is in the src folder in the explore package
+
+First we add this to `explore.cpp` at the top with the other `#include`s
+
+```cpp
+#include "nav2_msgs/srv/clear_entire_costmap.hpp"
+#include "slam_toolbox/srv/reset.hpp"
+```
+
+To enable map resetting for re-exploration, the above service definitions are required.
+
+Disabled parameters and functions related to returning to the initial position to prioritize continuous exploration.
+
+```cpp
+ double timeout;
+  double min_frontier_size;
+  this->declare_parameter<float>("planner_frequency", 1.0);
+  this->declare_parameter<float>("progress_timeout", 30.0);
+  this->declare_parameter<bool>("visualize", false);
+  this->declare_parameter<float>("potential_scale", 1e-3);
+  this->declare_parameter<float>("orientation_scale", 0.0);
+  this->declare_parameter<float>("gain_scale", 1.0);
+  this->declare_parameter<float>("min_frontier_size", 0.5);
+  // this->declare_parameter<bool>("return_to_init", false);
+
+  
+  this->get_parameter("planner_frequency", planner_frequency_);
+  this->get_parameter("progress_timeout", timeout);
+  this->get_parameter("visualize", visualize_);
+  this->get_parameter("potential_scale", potential_scale_);
+  this->get_parameter("orientation_scale", orientation_scale_);
+  this->get_parameter("gain_scale", gain_scale_);
+  this->get_parameter("min_frontier_size", min_frontier_size);
+  // this->get_parameter("return_to_init", return_to_init_);
+  this->get_parameter("robot_base_frame", robot_base_frame_);
+```
+
+```cpp
+// void Explore::returnToInitialPose()
+// {
+//   RCLCPP_INFO(logger_, "Returning to initial pose.");
+//   auto goal = nav2_msgs::action::NavigateToPose::Goal();
+//   goal.pose.pose.position = initial_pose_.position;
+//   goal.pose.pose.orientation = initial_pose_.orientation;
+//   goal.pose.header.frame_id = costmap_client_.getGlobalFrameID();
+//   goal.pose.header.stamp = this->now();
+
+//   auto send_goal_options =
+//       rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+//   move_base_client_->async_send_goal(goal, send_goal_options);
+// }
+```
+Don't add this code we are just commenting/ removing it the from the `explore.cpp` file
+
+Now let's add the function that resets the exploration state and reset the map. Add this function after `void Explore::reachedGoal` function 
+
+```cpp
+void Explore::resetExplorationState() {
+  // costmap_client_.clear();
+  prev_goal_ = geometry_msgs::msg::Point();
+  progress_timeout_ = this->get_parameter("progress_timeout").as_double();
+  last_markers_count_ = 0;
+  RCLCPP_INFO(logger_, "Exploration state RESET — starting over!");
+  auto global_costmap_client = this->create_client<nav2_msgs::srv::ClearEntireCostmap>("/global_costmap/clear_entirely_global_costmap");
+  if (global_costmap_client->wait_for_service(std::chrono::seconds(2))) {
+    auto request = std::make_shared<nav2_msgs::srv::ClearEntireCostmap::Request>();
+    global_costmap_client->async_send_request(request);
+    RCLCPP_INFO(this->get_logger(), "Requested global costmap clear.");
+  } else {
+    RCLCPP_WARN(this->get_logger(), "Global costmap clear service not available.");
+  }
+
+  // --- Clear local costmap too (optional) ---
+  auto local_costmap_client = this->create_client<nav2_msgs::srv::ClearEntireCostmap>("/local_costmap/clear_entirely_local_costmap");
+  if (local_costmap_client->wait_for_service(std::chrono::seconds(2))) {
+    auto request = std::make_shared<nav2_msgs::srv::ClearEntireCostmap::Request>();
+    local_costmap_client->async_send_request(request);
+    RCLCPP_INFO(this->get_logger(), "Requested local costmap clear.");
+  } else {
+    RCLCPP_WARN(this->get_logger(), "Local costmap clear service not available.");
+  }
+
+  // --- Reset SLAM map ---
+  auto slam_reset_client = this->create_client<slam_toolbox::srv::Reset>("/slam_toolbox/reset");
+  if (slam_reset_client->wait_for_service(std::chrono::seconds(2))) {
+    auto request = std::make_shared<slam_toolbox::srv::Reset::Request>();
+    slam_reset_client->async_send_request(request);
+    RCLCPP_INFO(this->get_logger(), "Requested SLAM map reset.");
+  } else {
+    RCLCPP_WARN(this->get_logger(), "SLAM reset service not available.");
+  }
+  
+  RCLCPP_INFO(logger_, "Waiting for sensors map update...");
+  // Instead of plain resume:
+  spinGoal();
+
+}
+```
+
+When we delete the map, we also lose the current sensor data. This can make the robot confused because it suddenly sees an empty world. To fix this, the spinGoal function makes the robot perform a 180-degree turn in place.
+
+This rotation allows the sensors (like LIDAR) to scan the surroundings and update the map immediately so exploration can continue smoothly.
+
+Add this after the previous funciton 
+
+```cpp
+void Explore::spinGoal()
+{
+  RCLCPP_INFO(logger_, "Spinning in place to refresh sensors.");
+
+  auto goal = nav2_msgs::action::NavigateToPose::Goal();
+  goal.pose.header.frame_id = costmap_client_.getGlobalFrameID();
+  goal.pose.header.stamp = this->now();
+
+  // Keep same position
+  auto pose = costmap_client_.getRobotPose();
+  goal.pose.pose.position = pose.position;
+
+  // Just change orientation: 180 deg spin for example
+  tf2::Quaternion q_orig, q_rot, q_new;
+  tf2::fromMsg(pose.orientation, q_orig);
+  q_rot.setRPY(0, 0, M_PI);  // Rotate 180 deg
+  q_new = q_rot * q_orig;
+  q_new.normalize();
+  goal.pose.pose.orientation = tf2::toMsg(q_new);
+
+  auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+  send_goal_options.result_callback = [this](const NavigationGoalHandle::WrappedResult& result) {
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+      RCLCPP_INFO(logger_, "Spin goal succeeded, resuming exploration.");
+    } else {
+      RCLCPP_WARN(logger_, "Spin goal failed or canceled, resuming anyway.");
+    }
+    // After spin, continue normal exploration
+    resume();
+  };
+
+  move_base_client_->async_send_goal(goal, send_goal_options);
+}
+```
+
+We added 2 new functions in `explore.cpp` so let's add them in `explore.h` (located in include folder)
+
+```cpp
+  geometry_msgs::msg::Pose initial_pose_;
+  //void returnToInitialPose(void);
+  void resetExplorationState();
+  void spinGoal();
+```
+
+We also removed the `returnToInitialPose` function
+
+Remember we added some random includes at the starting of `explore.cpp` now we need to tell the package where to find those files are 
+therefore make the following changes in the following files
+
+In `CMakeLists.txt` add slam_toolbox and nav2_msgs
+
+```txt
+# find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(map_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(nav2_costmap_2d REQUIRED)
+find_package(slam_toolbox REQUIRED)
+
+set(DEPENDENCIES
+  rclcpp
+  std_msgs
+  sensor_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  nav2_msgs
+  nav_msgs
+  map_msgs
+  nav2_costmap_2d
+  visualization_msgs
+  slam_toolbox
+)
+```
+
+In `package.xml` make sure these dependencies are added
+
+```xml
+  <depend>map_msgs</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>nav2_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>visualization_msgs</depend>
+  <depend>slam_toolbox</depend> 
+```
+
+Now the map should automatically reset after it's fully explored build the workspace and run the same commands you did for exploration.
+
+## Controller_Node
+
+To make our life simple let's add a controller node which checks from `chase_the_ball.py` wether a ball has been found or not and depending on that give msg to explore.cpp wether to continue exploring or stop exploring and run the chase the ball code
+
+In erc_ros2_navigation_py package in the erc_ros2_navigation_py folder make file called `controller_node.py` and copy paste the following code 
+
+```python
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Bool
+import time
+
+class ExploreController(Node):
+    def __init__(self):
+        super().__init__('explore_controller')
+        self.sub = self.create_subscription(Bool, '/object_detected', self.detected_callback, 10)
+        self.pub = self.create_publisher(Bool, '/explore/resume', 10)
+        
+        self.current_state = None  # Track current state to avoid republishing
+        self.last_publish_time = 0
+        self.publish_cooldown = 1.0  # 1 second cooldown between state changes
+
+    def detected_callback(self, msg):
+        current_time = time.time()
+        
+        # Avoid rapid state changes
+        if current_time - self.last_publish_time < self.publish_cooldown:
+            return
+        
+        # Only publish if state actually changed
+        if msg.data == self.current_state:
+            return
+        
+        control_msg = Bool()
+        
+        if msg.data:
+            # Object detected - STOP exploration
+            self.get_logger().info("🔴 Object detected! Stopping exploration...")
+            control_msg.data = False  # False = stop exploring
+            self.pub.publish(control_msg)
+            self.current_state = True
+            
+        else:
+            # Object lost - RESUME exploration
+            self.get_logger().info("🟢 Object lost! Resuming exploration...")
+            control_msg.data = True  # True = resume exploring
+            self.pub.publish(control_msg)
+            self.current_state = False
+        
+        self.last_publish_time = current_time
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = ExploreController()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+Add an entry point in `setup.py`:
+
+```python
+'console_scripts': [
+            'send_initialpose = erc_ros2_navigation_py.send_initialpose:main',
+            'slam_toolbox_load_map = erc_ros2_navigation_py.slam_toolbox_load_map:main',
+            'follow_waypoints = erc_ros2_navigation_py.follow_waypoints:main',
+            'controller_node = erc_ros2_navigation_py.controller_node:main', 
+        ],
+```
+
+Include the following dependencies in `package.xml`
+
+```xml
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>erc_ros2_navigation_py</name>
+  <version>1.0.0</version>
+  <description>Python nodes for slam, localization and navigation with Gazebo Harmonic and ROS Jazzy for BME MOGI ROS2 course</description>
+  <maintainer email="sagarv812@gmail.com">ERC IITB</maintainer>
+  <license>Apache License 2.0</license>
+
+  <!-- changed -->
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
+
+```
+
+That's well and good but no point of this node if it's not getting information in the `/object_detected` topic from  `chase_the_ball.py`.
+Let's change `chase_the_ball.py` (It was in `erc_gazebo_sensors_py` package)
+
+Add the following variables in `__init__` function:
+
+```python
+self.object_detected_pub = self.create_publisher(Bool, "/object_detected", 10)
+self.ball_detected = False
+self.stopped_near_ball = False        
+self.area_threshold = 0.25
+```
+
+And replace the `process_image` function with the following function: 
+```python
+def process_image(self, img):
+        """Image processing task."""
+        msg = Twist()
+        msg.linear.x = 0.0
+        msg.linear.y = 0.0
+        msg.linear.z = 0.0
+        msg.angular.x = 0.0
+        msg.angular.y = 0.0
+        msg.angular.z = 0.0
+
+        rows, cols = img.shape[:2]
+        total_area = rows * cols
+
+        
+        R, G, B = self.convert2rgb(img)
+
+        redMask = self.threshold_binary(R, (220, 255))
+        stackedMask = np.dstack((redMask, redMask, redMask))
+        contourMask = stackedMask.copy()
+        crosshairMask = stackedMask.copy()
+
+        # return value of findContours depends on OpenCV version
+        (contours, hierarchy) = cv2.findContours(
+            redMask.copy(), 1, cv2.CHAIN_APPROX_NONE
+        )
+        
+        detection_msg = Bool()
+
+        # Find the biggest contour (if detected)
+        if len(contours) > 0:
+
+            c = max(contours, key=cv2.contourArea)
+            contour_area = cv2.contourArea(c)
+            area_percentage = contour_area / total_area
+            
+            M = cv2.moments(c)
+
+            # Make sure that "m00" won't cause ZeroDivisionError: float division by zero
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+            else:
+                cx, cy = 0, 0
+
+            # Show contour and centroid
+            cv2.drawContours(contourMask, contours, -1, (0, 255, 0), 10)
+            cv2.circle(contourMask, (cx, cy), 5, (0, 255, 0), -1)
+
+            # Show crosshair and difference from middle point
+            cv2.line(crosshairMask, (cx, 0), (cx, rows), (0, 0, 255), 10)
+            cv2.line(crosshairMask, (0, cy), (cols, cy), (0, 0, 255), 10)
+            cv2.line(
+                crosshairMask,
+                (int(cols / 2), 0),
+                (int(cols / 2), rows),
+                (255, 0, 0),
+                10,
+            )
+            
+            # Check if ball is close enough (based on area)
+            if area_percentage >= self.area_threshold:
+                # Ball is close enough - STOP
+                msg.linear.x = 0.0
+                msg.angular.z = 0.0
+                
+                if not self.stopped_near_ball:
+                    self.get_logger().info(f"Ball detected and close enough! Area: {area_percentage:.2%} - STOPPING")
+                    self.stopped_near_ball = True
+                    self.ball_detected = True
+                    
+                    # Publish object detected = True (state changed)
+                    detection_msg.data = True
+                    self.object_detected_pub.publish(detection_msg)
+                
+            else:
+                # Ball detected but not close enough - Chase it
+                if self.stopped_near_ball:
+                    # State change: was stopped, now chasing again
+                    self.get_logger().info(f"Ball moved away, chasing again... Area: {area_percentage:.2%}")
+                    detection_msg.data = True
+                    self.object_detected_pub.publish(detection_msg)
+                
+                self.stopped_near_ball = False
+                
+                if not self.ball_detected:
+                    # State change: ball just appeared
+                    self.get_logger().info(f"Ball detected! Starting chase... Area: {area_percentage:.2%}")
+                    detection_msg.data = True
+                    self.object_detected_pub.publish(detection_msg)
+                    self.ball_detected = True
+                
+                # Chase the ball
+                if abs(cols / 2 - cx) > 20:
+                    msg.linear.x = 0.0
+                    if cols / 2 > cx:
+                        msg.angular.z = 0.2
+                    else:
+                        msg.angular.z = -0.2
+                else:
+                    msg.linear.x = 0.2
+                    msg.angular.z = 0.0
+
+        else:
+            # No ball detected
+            
+            if self.ball_detected or self.stopped_near_ball:
+                self.get_logger().info("Ball lost! Resuming exploration...")
+                self.ball_detected = False
+                self.stopped_near_ball = False
+                
+                # Publish object detected = False (ball lost - state changed)
+                detection_msg.data = False
+                self.object_detected_pub.publish(detection_msg)
+
+        # Publish cmd_vel
+        self.publisher.publish(msg)
+
+        # Return processed frames
+        return redMask, contourMask, crosshairMask
+
+```
+
+Now finally we can run and test it!!
+
+First of all don't forget to build and source the workspace 
+
+We need to open 5 terminals (and source in all terminals don't forget) and write the following commands in each terminal
+
+Terminal 1:
+```bash
+ros2 launch erc_ros2_navigation spawn_robot.launch.py
+```
+
+Terminal 2:
+```bash
+ros2 launch erc_ros2_navigation navigation_with_slam.launch.py
+```
+
+Terminal 3:
+```bash
+ros2 launch explore_lite explore.launch.py
+```
+
+Terminal 4:
+```bash
+ros2 run erc_ros2_navigation_py controller_node
+```
+
+Terminal 5:
+```bash
+ros2 launch erc_gazebo_sensors_py chase_the_ball
+```
+
+And voila!! It should be working use the resource spawner to spawn the ball and see how our bot finds the ball
+You can also remove the ball to see how the bot continues to explore if the ball is lost. Experiment around and enjoy :)
