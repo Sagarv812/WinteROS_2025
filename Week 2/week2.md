@@ -120,8 +120,6 @@ class ImageSubscriber(Node):
                 self.running = False
                 break
 
-            rclpy.spin_once(self, timeout_sec=0.05)
-
         # Close OpenCV window after quitting
         cv2.destroyAllWindows()
         self.running = False
@@ -151,7 +149,31 @@ if __name__ == '__main__':
 ```
 > In OpenCV, each frame is handled individually and we have to perform operations such as converting it to a CV2 compatible frame for all the frames we get.
 
+Run 
+```bash
+chmod +x chase_the_ball.py
+```
+So we can make it an executable file.
+
+Don't forget to add the entry point in `setup.py`
+```python
+entry_points={
+     'console_scripts': [
+         'chase_the_ball = erc_gazebo_sensors_py.chase_the_ball:main'
+     ],
+ },
+```
+
 Build and source your workspace.
+
+Run
+```bash
+ros2 launch erc_gazebo_sensors spawn_robot.launch.py
+```
+In another terminal sourcing your workspace run
+```bash
+ros2 run erc_gazebo_sensors_py chase_the_ball
+```
 
 You can run this after launching your robot as you did in the previous week and you should be able to see a camera feed. 
 > To end the `chase_the_ball` program, just clicking **X** on the window isn't enough. Close it with `Ctrl + C` in the terminal you opened it in.
@@ -272,9 +294,115 @@ def display_image(self):
     self.running = False
 ```
 
+Okay let's run it once
+
 This time the node will open 4 OpenCV windows and try to find the red ball on the image. Let's add a red ball to the simulation first using the `Resource Spawner` plugin of Gazebo:
 
+<img width="2558" height="1336" alt="image" src="https://github.com/user-attachments/assets/2056ae45-2a0c-4ef5-95d9-99af93cb8815" />
+
+The 4 windows
+
+<img width="2130" height="1156" alt="image" src="https://github.com/user-attachments/assets/0f6d103e-5d61-4bd5-a468-3bf1df941ccd" />
+
+Handling many OpenCV windows can be uncomfortable, so before we start following the ball, let's overlay the output of the image processing on the camera frame:
+
+```python
+    # Add small images to the top row of the main image
+    def add_small_pictures(self, img, small_images, size=(160, 120)):
+    
+        x_base_offset = 40
+        y_base_offset = 10
+    
+        x_offset = x_base_offset
+        y_offset = y_base_offset
+    
+        for small in small_images:
+            small = cv2.resize(small, size)
+            if len(small.shape) == 2:
+                small = np.dstack((small, small, small))
+    
+            img[y_offset: y_offset + size[1], x_offset: x_offset + size[0]] = small
+    
+            x_offset += size[0] + x_base_offset
+    
+        return img
+```
+Let's modify `display_image()` function so we can use the above function
+
+```python
+    def display_image(self):
+        """Main loop to process and display the latest frame."""
+        # Create a single OpenCV window
+        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("frame", 800,600)
+
+        while rclpy.ok():
+            # Check if there is a new frame available
+            if self.latest_frame is not None:
+
+                # Process the current image
+                mask, contour, crosshair = self.process_image(self.latest_frame)
+
+                # Add processed images as small images on top of main image
+                result = self.add_small_pictures(self.latest_frame, [mask, contour, crosshair])
+
+                # Show the latest frame
+                cv2.imshow("frame", result)
+                self.latest_frame = None  # Clear the frame after displaying
+
+            # Check for quit key
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                self.running = False
+                break
+
+        # Close OpenCV window after quitting
+        cv2.destroyAllWindows()
+        self.running = False
+```
+
+Now, on running it, we can see that all images are in one window, making it much easier to handle.
+
+<img width="801" height="635" alt="image" src="https://github.com/user-attachments/assets/f3dbe9e2-b18c-49c1-bd9a-7e1d971f6ee5" />
+
+Wait but all of this is just to recognize the ball. Where is the code to follow the ball ? 
+
+Add this code snippet in `proccess_image()` function right after creating the crosshair image
+
+```python
+            cv2.line(crosshairMask, (cx, 0), (cx, rows), (0, 0, 255), 10)
+            cv2.line(crosshairMask, (0, cy), (cols, cy), (0, 0, 255), 10)
+            cv2.line(
+                crosshairMask,
+                (int(cols / 2), 0),
+                (int(cols / 2), rows),
+                (255, 0, 0),
+                10,
+            )
+            # Chase the ball
+            if abs(cols / 2 - cx) > 20:
+                msg.linear.x = 0.0
+                if cols / 2 > cx:
+                    msg.angular.z = 0.2
+                else:
+                    msg.angular.z = -0.2
+
+            else:
+                msg.linear.x = 0.2
+                msg.angular.z = 0.0
+
+        else:
+            msg.linear.x = 0.0
+            msg.angular.z = 0.0
+```
+
+The second else is for the  
+```python
+    if len(countors) > 0:
+```
+
 And now the robot should be able to follow the red ball!!
+<img width="1281" height="720" alt="image" src="https://github.com/user-attachments/assets/3480e70c-a69b-45de-9c80-23c71bc62e57" />
+
 
 # Autonomous Navigation
 
