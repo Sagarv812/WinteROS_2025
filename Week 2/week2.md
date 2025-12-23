@@ -951,5 +951,38 @@ If obstacles are detected around the robot those can be visualized as a cost map
 
 <img width="2560" height="1335" alt="image" src="https://github.com/user-attachments/assets/0d7df78c-1749-4a61-a619-f0a2b9bc32c8" />
 
+## Waypoint navigation
+
+We can use the navigation stack for waypoint navigation, this can be done through the GUI of RViz or writing a custom node. Let's start with the first one.
+
+We'll need 2 terminals as before, one for the simulation:
+```bash
+ros2 launch bme_ros2_navigation spawn_robot.launch.py
+```
+
+And in another terminal we launch the `navigation.launch.py`:
+
+```bash
+ros2 launch bme_ros2_navigation navigation.launch.py
+```
+First, we have to make sure that the `Nav2 Goal` toolbar is added to RViz! If not, we can add it under the `+` sign.
+<img width="1459" height="1229" alt="image" src="https://github.com/user-attachments/assets/36b45023-921c-4e44-9411-c6034bcaf488" />
+
+
+Then we have to switch nav2 to waypoint following mode:
+<img width="715" height="513" alt="image" src="https://github.com/user-attachments/assets/a2dfcb48-34a0-4156-b710-67038f527a92" />
+
+
+Using the `Nav2 Goal` tool we can define the waypoints:
+<img width="2560" height="1334" alt="image" src="https://github.com/user-attachments/assets/d38af408-bc20-4b0e-a2d5-19e40b5cdd08" />
+
+
+And when we are done with the waypoints we can start the navigation through them:
+<img width="2560" height="1337" alt="image" src="https://github.com/user-attachments/assets/79b9b18d-6f6e-4ee7-be90-45e6fa9e8a06" />
+
+<img width="2560" height="1332" alt="image" src="https://github.com/user-attachments/assets/90c1a146-dee7-4340-8a32-859cb5426346" />
+
+
+
 
 
