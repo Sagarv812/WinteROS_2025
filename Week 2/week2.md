@@ -1545,6 +1545,12 @@ In `package.xml` make sure these dependencies are added:
   <depend>visualization_msgs</depend>
   <depend>slam_toolbox</depend> 
 ```
+Even though most probably the libraries are installed there is a chance for them to be missing so just for safety run the following 2 commands:
+
+```bash
+sudo apt install ros-jazzy-nav2-msgs
+sudo apt install ros-jazzy-slam-toolbox
+```
 
 Now the map should automatically reset after it's fully explored build the workspace and run the same commands you did for exploration.
 
