@@ -41,6 +41,14 @@ If the results are printed out without any errors, congratulations !!! You have 
 You may Install OpenCV from source. (Lengthy process)
 
 Please refer to this [link](https://docs.opencv.org/4.5.0/d2/de6/tutorial_py_setup_in_ubuntu.html). This installation can take some time so have patience.
+## cv_bridge
+
+Now that we are familiar with the basics of OpenCV, ArUco and ROS2, we can finally talk about integrating these two and performing various operations on images such as image detection.</br>
+
+Unfortunately, in ROS2, the format of the images being processed (ROS2 image Message) is quite different than that used in OpenCV (cv::Mat). This is where the library  cv_bridge comes to the rescue! </br>
+We create a publisher-subscriber model to import and export images out of ROS into OpenCV and back into ROS. 
+
+<img src="W2_Images/cvbridge3.png" width="300" height="330">
 
 # Image Processing with OpenCV
 
