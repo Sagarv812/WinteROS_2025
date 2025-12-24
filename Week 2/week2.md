@@ -1,3 +1,40 @@
+# Week 3 — JARVIS: Vision & Navigation
+
+Up until now, your robot could **move** and **sense** the world.  
+But sensing alone isn’t enough.
+
+This is the stage where raw data turns into **understanding**.
+
+Before an Iron Man suit can navigate a battlefield or map an unknown structure, it has to interpret what it sees — edges, motion, obstacles, free space. Cameras stop being “images” and start becoming **information**. Sensor data stops being noise and starts forming **maps**.
+
+This week, we step into that layer.
+
+We’ll use **OpenCV** to process camera data and extract meaningful features, and we’ll introduce **navigation and SLAM algorithms** that allow a robot to build a map of its environment while figuring out where it is inside it — all at the same time.
+
+This isn’t about flashy movement anymore.  
+It’s about **reasoning**, **localization**, and **decision-making**.
+
+The suit doesn’t just fly.  
+It knows *where* it is.
+
+<img width="498" height="189" alt="image" src="https://github.com/user-attachments/assets/b14284a0-a5c5-4d70-b0dc-8078b95f973b" />(iron-man-suits.gif)
+
+## Part 1 - Vision: Teaching Stark OS to See
+So far, our robot can move and sense distance — but it’s still blind.
+
+In *Week 3 · Part 1*, we give StarkOS vision.
+
+Using *ROS 2 + OpenCV*, we’ll process live camera feeds, extract useful information from raw pixels, and turn what the robot sees into motion. This is perception in its simplest and most powerful form.
+
+By the end of this part, the robot won’t just drive —
+it will *react visually* to its environment.
+
+No mapping yet.
+No planning yet.
+Just *seeing → deciding → moving.*
+
+<img width="800" height="344" alt="image" src="https://github.com/user-attachments/assets/ef9af9c3-bdb4-4e2b-b3bc-39fcd829a057" />(opencv.gif)
+
 ## OpenCV
 
 <img width="341" height="148" alt="image" src="https://github.com/user-attachments/assets/5d9699e7-9152-4f53-8034-13593d1b16af" />
@@ -44,6 +81,10 @@ You may Install OpenCV from source. (Lengthy process)
 Please refer to this [link](https://docs.opencv.org/4.5.0/d2/de6/tutorial_py_setup_in_ubuntu.html). This installation can take some time so have patience.
 
 # Image Processing with OpenCV
+
+
+
+(iron man proccesing his camera feed from his suit)
 
 We'll learn how to implement our own node for image processing using ROS and OpenCV. To start, let's create a package alongside our pre-existing package `erc_gazebo_sensors` that we made in the previous week:
 
@@ -306,6 +347,9 @@ def threshold_binary(self, img, thresh=(200, 255)):
 The essence behind OpenCV is that it dissects each frame of the video into three different photo channels - **Red, Blue and Green**.  
 We then perform operations on each of the channels separately using the intensity values of the different colours.
 
+This is classic Stark engineering — break a complex signal into simple components, isolate what matters, and ignore the noise.
+No magic. Just math, thresholds, and a lot of iteration.
+
 ### Change your `display_image` function to show all the different frames that `process_image` returns
 
 ```python
@@ -449,7 +493,30 @@ And now the robot should be able to follow the red ball!!
 <img width="1281" height="720" alt="image" src="https://github.com/user-attachments/assets/3480e70c-a69b-45de-9c80-23c71bc62e57" />
 
 
-# Autonomous Navigation
+
+# Part 2 — Autonomy: Letting StarkOS Decide
+
+In Part 1, we taught StarkOS how to see.
+Now, we stop telling it what to do.
+
+In *Week 3 · Part 2*, we move from perception to *autonomous navigation* — where the robot uses sensor data to make decisions on its own.
+
+We’ll explore how robots:
+
+understand their position,
+
+reason about their surroundings,
+
+and move purposefully without manual control.
+
+This is where the system starts behaving less like a remote-controlled machine and more like an *independent agent*.
+
+No flashy tricks — just the fundamentals that power real-world robots.
+
+<img width="800" height="394" alt="image" src="https://github.com/user-attachments/assets/7f713ac4-7fe1-4933-9a2e-8d5631356ca0" />(navigating-ironman.gif)
+`Iron man navigating through the city`
+
+## Autonomous Navigation
 
 In this lesson we'll learn how to map the robot's environment, how to do localization on an existing map and we'll learn to use ROS2's navigation stack.
 
@@ -488,6 +555,9 @@ An internal state (the robot’s pose, including x, y, yaw) is estimated using a
 As the robot moves, it accumulates new sensor data. The SLAM algorithm integrates that data into a global map (2D grid map, 3D point cloud, or other representations).
 4. Loop closure
 When the robot revisits a previously mapped area, the SLAM algorithm detects that it’s the same place (loop closure). This knowledge is used to reduce accumulated drift and refine both the map and pose estimates.
+
+<img width="1200" height="522" alt="image" src="https://github.com/user-attachments/assets/64d53d98-0577-4541-8c65-489abb7b98bf" />
+`Tony Stark mapping the city`
 
 For doing all this, we will use the `slam_toolbox` package that has to be installed first:
 ```bash
@@ -649,10 +719,13 @@ While mapping was the process of creating a representation (a map) of an environ
 - The environment or map is typically already available or pre-built.
 - The robot’s task is to figure out “Where am I?” or “Which direction am I facing?” using sensor data, often by matching its current perceptions to the known map.
 
+The suit already knows the city — now it just needs to know where it’s standing.
 
 ### Localization with AMCL
 
 AMCL (Adaptive Monte Carlo Localization) is a particle filter–based 2D localization algorithm. The robot’s possible poses (position + orientation in 2D) are represented by a set of particles. It adaptively samples the robot’s possible poses according to sensor readings and motion updates, converging on an accurate estimate of where the robot is within a known map.
+
+Jarvis isn’t guessing — he’s narrowing down possibilities until only one makes sense.
 
 AMCL is part of the ROS2 navigation stack, let's install it first:
 ```bash
@@ -989,6 +1062,8 @@ We are using AMCL, so first we'll have to publish an initial pose, then we have 
 
 As soon as the pose goal is received the navigation stack plans a global path to the goal and the controller ensures locally that the robot follows the global path while it avoids dynamic obstacles. The controller calculates a cost map around the robot that determines the ideal trajectory of the robot. If there aren't any obstacles around the robot this cost map weighs the global plan. 
 
+Target locked. Calculating path.
+
 <img width="2560" height="1336" alt="image" src="https://github.com/user-attachments/assets/b2b9a6d4-cf0c-407a-b1d4-a6f480d21d63" />
 
 
@@ -1289,6 +1364,14 @@ ros2 launch erc_ros2_navigation navigation_with_slam.launch.py
 
 <a href="https://youtu.be/gZrYEP2ctfY"><img width="1281" height="719" alt="image" src="https://github.com/user-attachments/assets/611a4391-51e1-46e6-81ac-f473b881cd70" /></a> 
 
+<img width="498" height="289" alt="image" src="https://github.com/user-attachments/assets/9de2b882-2423-4e0c-9478-308c49ab3281" />(tony-proud.gif)
+
+Tony Stark is surprised you made it this far.
+
+Vision, mapping, localization, navigation — you’ve crossed almost major subsystem that turns code into autonomy.
+
+There’s only one piece left now. 
+
 # Exploration
 
 Exploration is a process by which a robot operating in an unknown or partially known environment actively searches the space to gather new information. This is a real life use case to use SLAM together with the navigation stack.
@@ -1332,6 +1415,10 @@ And finally here is a video about exploration:
 # Assignment ??
 
 You’ve been working incredibly hard, so there is no formal assignment this week!
+
+![tony-stark-tony-phew](https://github.com/user-attachments/assets/6fc10b50-16dc-4be9-ab3f-bfc3c6ca9ea8) 
+
+`No Assignment`
 
 Instead, we’re doing a cool integration activity: combining Exploration with Chase the Ball. Your goal is to have the bot autonomously search the entire house until it finds the red ball.
 
@@ -1832,3 +1919,8 @@ ros2 launch erc_gazebo_sensors_py chase_the_ball
 
 And voila!! It should be working use the resource spawner to spawn the ball and see how our bot finds the ball.
 You can also remove the ball to see how the bot continues to explore if the ball is lost. Experiment around and enjoy :)
+
+<img width="800" height="348" alt="image" src="https://github.com/user-attachments/assets/6a01084a-63af-4f60-b8ff-6134daf51700" />(Ironmancool.gif)
+
+Suit up for the Final Week!
+
