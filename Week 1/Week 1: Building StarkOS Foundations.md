@@ -1228,9 +1228,9 @@ your own tiny Mark-1 boot sequence.
 
 Just like how Mark-1 boots up here
 
-<p align="center">
+`<p align="center">
   <img src="../Images/iron-man-armor.gif" width="700">
-</p>
+</p>`
 
 ---
 
